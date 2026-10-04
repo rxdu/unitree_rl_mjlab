@@ -44,12 +44,21 @@ def foot_contact_forces(env: ManagerBasedRlEnv, sensor_name: str) -> torch.Tenso
   return torch.sign(forces_flat) * torch.log1p(torch.abs(forces_flat))
 
 
+# Below this command norm the phase observation is zeroed. A named constant
+# because the policy-contract exporter (rl/policy_contract.py) must report the
+# same value the policy was trained with.
+PHASE_STAND_THRESHOLD = 0.1
+
+
 def phase(env: ManagerBasedRlEnv, period: float, command_name: str) -> torch.Tensor:
     global_phase = (env.episode_length_buf * env.step_dt) % period / period
     phase = torch.zeros(env.num_envs, 2, device=env.device)
     phase[:, 0] = torch.sin(global_phase * torch.pi * 2.0)
     phase[:, 1] = torch.cos(global_phase * torch.pi * 2.0)
-    stand_mask = torch.linalg.norm(env.command_manager.get_command(command_name), dim=1) < 0.1
+    stand_mask = (
+      torch.linalg.norm(env.command_manager.get_command(command_name), dim=1)
+      < PHASE_STAND_THRESHOLD
+    )
     phase = torch.where(stand_mask.unsqueeze(1), torch.zeros_like(phase), phase)
     return phase
 

@@ -1,5 +1,6 @@
 """Script to train RL agent with RSL-RL."""
 
+import inspect
 import logging
 import os
 import sys
@@ -123,6 +124,9 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
     runner_cls = MjlabOnPolicyRunner
 
   runner_kwargs = {}
+  # Runners that export a policy artifact record the task in its provenance.
+  if "task_id" in inspect.signature(runner_cls.__init__).parameters:
+    runner_kwargs["task_id"] = task_id
   runner = runner_cls(env, agent_cfg, str(log_dir), device, **runner_kwargs)
 
   runner.add_git_repo_to_log(__file__)
