@@ -286,7 +286,8 @@ def main(args: Args) -> None:
 
   out = os.path.join(artifact_dir, "conformance.csv")
   with open(out, "w", newline="") as f:
-    w = csv.DictWriter(f, fieldnames=header)
+    # LF line endings (policy-contract.md §8); csv's default is CRLF.
+    w = csv.DictWriter(f, fieldnames=header, lineterminator="\n")
     w.writeheader()
     for r in rows:
       # 9 significant digits: exact for float32 values, 1e-9 relative otherwise.
