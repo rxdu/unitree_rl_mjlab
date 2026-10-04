@@ -156,6 +156,13 @@ def unitree_go2_rough_env_cfg(
         cfg.scene.terrain.terrain_generator.num_rows = 5
         cfg.scene.terrain.terrain_generator.border_width = 10.0
 
+    # The play terrain differs from training's, and its initial state has 38
+    # contacts (measured), which mujoco_warp refuses at construction against
+    # training's nconmax of 35. 48 is what the R1/H1_2 rough configs use.
+    # Play only: raising it for training would grow the contact buffers of
+    # every world.
+    cfg.sim.nconmax = 48
+
   return cfg
 
 
