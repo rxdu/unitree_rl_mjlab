@@ -26,3 +26,8 @@ Operational lessons for this fork. Check before changing dependencies or verifyi
 - **Pattern:** `conformance.csv` was written with `csv.DictWriter` defaults, which end lines with `\r\n`. The C++ reader split on `\n`, leaving `\r` on the last header name, and failed with "no column qtarget_RL_calf_joint" — far from the cause.
 - **Correction:** Pass `lineterminator="\n"` when a file is consumed outside Python, state the line ending in the format's spec, and make readers strip a trailing `\r` anyway.
 - **Context:** Python `csv`; any cross-language text fixture.
+
+### A capacity sized from one sample of a random quantity
+- **Pattern:** `play.py Unitree-Go2-Rough` failed with "nconmax overflow (nconmax must be >= 38)". Raising `nconmax` to 48 made the next run start, and that was committed — but the play terrain is regenerated with a random seed on every run, and the following run needed 62.
+- **Correction:** Before sizing a buffer from an observed value, find out whether that value is random; if it is, either derive the size (here `nconmax=None`, which mujoco_warp sizes from the actual initial state) or test several draws. One passing run of a randomized setup is one sample.
+- **Context:** mjlab 1.2.0 / mujoco_warp 3.5.0 `put_data`; Go2 rough play config.
