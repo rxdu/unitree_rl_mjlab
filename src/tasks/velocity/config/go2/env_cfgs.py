@@ -7,9 +7,11 @@ from src.assets.robots import (
 )
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs import mdp as envs_mdp
+from mjlab.envs.mdp import dr
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers import TerminationTermCfg
 from mjlab.managers.event_manager import EventTermCfg
+from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import ContactMatch, ContactSensorCfg, RayCastSensorCfg
 from mjlab.tasks.velocity import mdp
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
@@ -84,6 +86,27 @@ def unitree_go2_rough_env_cfg(
 
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = geom_names
   cfg.events["base_com"].params["asset_cfg"].body_names = ("base_link",)
+
+  # Passive joint damping and friction loss, which the training MJCF does not
+  # model at all. The ranges cover the MuJoCo Menagerie Go2 (damping 2,
+  # frictionloss 0.2) that xmAppLeggedController validates against; its
+  # ADR-0011 D7 keeps the two models different on purpose. The real robot's
+  # values are unmeasured. Leg joints only: the floating base gets none.
+  # One SceneEntityCfg per term: mjlab writes resolved ids back into it, so a
+  # shared instance fails validation on the second term.
+  def leg_joints() -> SceneEntityCfg:
+    return SceneEntityCfg("robot", joint_names=(r".*_(hip|thigh|calf)_joint",))
+
+  cfg.events["joint_damping"] = EventTermCfg(
+    mode="startup",
+    func=dr.joint_damping,
+    params={"asset_cfg": leg_joints(), "operation": "abs", "ranges": (0.0, 2.5)},
+  )
+  cfg.events["joint_frictionloss"] = EventTermCfg(
+    mode="startup",
+    func=dr.joint_friction,
+    params={"asset_cfg": leg_joints(), "operation": "abs", "ranges": (0.0, 0.3)},
+  )
 
   cfg.rewards["pose"].params["std_standing"] = {
     r".*(FR|FL|RR|RL)_hip_joint.*": 0.05,
