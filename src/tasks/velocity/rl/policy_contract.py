@@ -1,8 +1,7 @@
-"""Export a trained velocity policy as an xmAppLeggedController policy artifact.
+"""Export a trained velocity policy as a policy artifact (contract v1).
 
-The format is specified by the consumer, not here: xmAppLeggedController
-`docs/design/control/policy-contract.md` (contract v1), decided in its
-ADR-0011. This module is the producer half. It reads the training environment
+The format is specified by the runtime that consumes the artifact, not
+here; this module is the producer half. It reads the training environment
 and the trained policy and writes `policy.yaml` + `policy.bin`, and it REFUSES
 anything contract v1 cannot express -- an artifact that a runtime would
 misread is worse than no artifact, because the failure is silent: the right
@@ -36,7 +35,7 @@ CONTRACT_VERSION = 1
 POLICY_YAML = "policy.yaml"
 POLICY_BIN = "policy.bin"
 
-# policy-contract.md §2: the HAL's joint vocabulary.
+# The runtime's joint vocabulary.
 _HAL_JOINT_RE = re.compile(r"^(FR|FL|RR|RL)_(hip|thigh|calf)_joint$")
 _NUM_JOINTS = 12
 
@@ -70,7 +69,7 @@ def _scalar_scale(name: str, scale: Any) -> float:
 
 
 def _observation_terms(env: ManagerBasedRlEnv, command_name: str) -> list[dict]:
-  """Map the actor group's terms onto the contract's closed vocabulary (§4)."""
+  """Map the actor group's terms onto the contract's closed vocabulary."""
   om = env.observation_manager
   group_cfg = om.cfg["actor"]
   if group_cfg.history_length not in (None, 0, 1):
@@ -131,7 +130,7 @@ def _observation_terms(env: ManagerBasedRlEnv, command_name: str) -> list[dict]:
     else:
       raise ContractUnsupportedError(
         f"observation term '{name}' ({getattr(func, '__name__', func)}) is not "
-        "in contract v1's vocabulary (policy-contract.md §4)"
+        "in contract v1's observation vocabulary"
       )
     # Keep the canonical key order: name first, then dim and the rest.
     terms.append({"name": entry.pop("name"), **entry})
@@ -315,7 +314,7 @@ def _network_tensors(policy: nn.Module, obs_dim: int) -> tuple[list[tuple[str, n
 
 
 def evaluate_bin(network: dict, tensors: dict[str, np.ndarray], obs: np.ndarray) -> np.ndarray:
-  """Reference evaluation of contract tensors, as the runtime must do it (§7).
+  """Reference evaluation of contract tensors, as the runtime must do it.
 
   float32 throughout. Used for the export-time self-check and by tests.
   """
@@ -356,7 +355,7 @@ def _git(*args: str) -> str | None:
 
 
 def robot_name_for_task(task: str) -> str:
-  """`Unitree-Go2-Flat` -> `go2`, the name xmAppLeggedController configs use."""
+  """`Unitree-Go2-Flat` -> `go2`, the robot name the runtime expects."""
   m = re.match(r"^Unitree-([A-Za-z0-9]+)-", task)
   if not m:
     raise ContractUnsupportedError(f"cannot derive a robot name from task '{task}'")
@@ -437,8 +436,7 @@ def export_policy_contract(
   yaml_path = os.path.join(out_dir, POLICY_YAML)
   with open(yaml_path, "w") as f:
     f.write(
-      "# xmAppLeggedController policy artifact, contract v1\n"
-      "# Spec: xmAppLeggedController docs/design/control/policy-contract.md\n"
+      "# Policy artifact, contract v1\n"
     )
     yaml.safe_dump(contract, f, sort_keys=False, default_flow_style=None, width=100)
   return yaml_path

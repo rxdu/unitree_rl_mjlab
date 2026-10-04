@@ -1,19 +1,18 @@
 """Record conformance vectors for an exported policy artifact.
 
 Produces `conformance.csv` next to an artifact written by training
-(`<run>/policy_artifact/`), per xmAppLeggedController
-`docs/design/control/policy-contract.md` §8 (ADR-0011 D5): rollouts of the
+(`<run>/policy_artifact/`), as policy contract v1 specifies: rollouts of the
 training environment with observation noise off, recording the inputs as the
 runtime receives them, the observation mjlab built, and the action the policy
 returned.
 
 Before writing, every row is checked twice, so a vector file that disagrees
 with the contract it accompanies is never produced:
-  1. the contract's own §4 definitions, evaluated here in numpy from the
+  1. the contract's own observation definitions, evaluated here in numpy from the
      recorded inputs, must reproduce mjlab's observation -- this checks the
      SPECIFICATION against the training code, before any runtime exists;
-  2. the artifact's policy.bin, evaluated as §7 prescribes, must reproduce the
-     policy's action -- this checks the artifact against the checkpoint.
+  2. the artifact's policy.bin, evaluated as the contract prescribes, must
+     reproduce the policy's action -- this checks the artifact against the checkpoint.
 
 Usage:
   python scripts/export_conformance.py Unitree-Go2-Flat \
@@ -83,7 +82,7 @@ def _deep_merge(base: dict, override: dict) -> dict:
   return out
 
 
-OBS_TOL = (1e-5, 1e-5)  # (atol, rtol), policy-contract.md §8
+OBS_TOL = (1e-5, 1e-5)  # (atol, rtol), the contract's tolerances
 ACT_TOL = (1e-4, 1e-4)
 
 
@@ -111,7 +110,7 @@ def _quat_to_rot(q: np.ndarray) -> np.ndarray:
 def reference_observation(
   contract: dict, row: dict, k: int, last_action: np.ndarray
 ) -> np.ndarray:
-  """policy-contract.md §4, implemented from the spec text, not from mjlab."""
+  """The contract's observation definitions, from the spec rather than mjlab."""
   names = contract["joints"]["names"]
   default = np.array(contract["joints"]["default_position_rad"])
   q = np.array([row[f"q_{n}"] for n in names])
@@ -224,7 +223,7 @@ def main(args: Args) -> None:
     + [f"qtarget_{n}" for n in HAL_ORDER]
   )
   rows = []
-  # The contract's episode semantics (§6), tracked independently of mjlab and
+  # The contract's episode semantics, tracked independently of mjlab and
   # then compared with it: k counts inferences since the episode start, and
   # the previous action is zero at k = 0.
   k_ref, prev_a = 0, np.zeros(12)
@@ -286,7 +285,7 @@ def main(args: Args) -> None:
 
   out = os.path.join(artifact_dir, "conformance.csv")
   with open(out, "w", newline="") as f:
-    # LF line endings (policy-contract.md §8); csv's default is CRLF.
+    # LF line endings, as the contract specifies; csv's default is CRLF.
     w = csv.DictWriter(f, fieldnames=header, lineterminator="\n")
     w.writeheader()
     for r in rows:

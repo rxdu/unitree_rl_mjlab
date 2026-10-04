@@ -17,7 +17,7 @@ from .policy_contract import (
   export_policy_contract,
 )
 
-# Next to the checkpoints: the xmAppLeggedController policy artifact
+# Next to the checkpoints: the policy artifact
 # (policy.yaml + policy.bin + a copy of policy.onnx), refreshed on every save.
 ARTIFACT_DIR = "policy_artifact"
 

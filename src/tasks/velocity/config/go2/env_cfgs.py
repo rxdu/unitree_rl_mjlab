@@ -89,8 +89,8 @@ def unitree_go2_rough_env_cfg(
 
   # Passive joint damping and friction loss, which the training MJCF does not
   # model at all. The ranges cover the MuJoCo Menagerie Go2 (damping 2,
-  # frictionloss 0.2) that xmAppLeggedController validates against; its
-  # ADR-0011 D7 keeps the two models different on purpose. The real robot's
+  # frictionloss 0.2) that the runtime validates against, kept different
+  # from the training model on purpose. The real robot's
   # values are unmeasured. Leg joints only: the floating base gets none.
   # One SceneEntityCfg per term: mjlab writes resolved ids back into it, so a
   # shared instance fails validation on the second term.
