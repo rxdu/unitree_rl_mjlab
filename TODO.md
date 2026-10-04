@@ -1,0 +1,7 @@
+# TODO
+
+## Deploy safety and sim-to-real gaps
+
+- [ ] Fall detection on real robots is a no-op: decide whether to re-enable it. `isaaclab::mdp::bad_orientation()` returns `false` unconditionally, with the tilt check commented out (`deploy/include/isaaclab/envs/mdp/terminations.h:14-15`), yet every robot registers it as the RL-state → Passive safety transition (`deploy/robots/{a2,g1,g1_23dof,go2,h1_2,r1}/src/State_RLBase.cpp`). A fallen robot keeps executing the policy until the operator presses LT+B. Present since upstream's initial commit `cbb1ade`; reason unknown. If re-enabled, clamp the `acos` argument to [-1, 1]. Verified by reading the source on 2026-10-04; not tested on hardware.
+- [ ] Rough-terrain policies cannot be deployed with the current C++ stack. The Rough actor observes `height_scan` (Flat configs delete it, e.g. `src/tasks/velocity/config/go2/env_cfgs.py:157`), but `deploy.yaml` has no height-scan observation and there is no on-robot height-map source. Only blind (Flat) policies match the deploy observation contract. Verified by comparing `velocity_env_cfg.py` actor terms with `deploy/robots/go2/config/policy/velocity/v0/params/deploy.yaml`.
+- [ ] Policy loop has no overrun detection: `State_RLBase` sleeps until a fixed schedule (`sleepTill += dt`), so a slow step is followed by back-to-back catch-up steps with nothing logged (`deploy/include/FSM/State_RLBase.h:38-45`). Verified by reading the source.
